@@ -1,0 +1,43 @@
+services:
+  rmq:
+    restart: always
+    image: rabbitmq:4.1.0-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 30s
+      retries: 3
+
+  redis:
+    restart: always
+    image: redis
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  weather:
+    build:
+      context: ./services/weather
+    depends_on:
+      rmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - 8080:80
+
+  forecast:
+    build:
+      context: ./services/forecast
+    depends_on:
+      rmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
