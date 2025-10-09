@@ -5,6 +5,6 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ADD . /app
 WORKDIR /app
-RUN uv sync --locked
+RUN uv sync
 
 CMD ["uv", "run", "main.py"]
