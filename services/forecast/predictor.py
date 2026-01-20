@@ -1,12 +1,15 @@
 import aiohttp
 import asyncio
 import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
-from catboost import CatBoostRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.multioutput import MultiOutputRegressor
 from sklearn.preprocessing import StandardScaler
 
-class ForecasterCatBoost:
+from settings import settings
+
+
+class ForecasterLinear:
     def __init__(self, history_days=7):
         self.history_days = history_days
         self.model = None
@@ -22,7 +25,7 @@ class ForecasterCatBoost:
         self.df_history = None
 
     async def fetch_day_weather(self, session, city, date):
-        url = f"http://localhost:8080/weather?city={city}&date={date.strftime('%Y-%m-%d')}"
+        url = f"http://{settings.WEATHER_HOST}:{settings.WEATHER_PORT}/weather?city={city}&date={date.strftime('%Y-%m-%d')}"
         async with session.get(url) as resp:
             resp_json = await resp.json()
             data = resp_json['weather']
@@ -41,7 +44,6 @@ class ForecasterCatBoost:
     def make_supervised(self, df):
         df = df.copy()
         df['dayofyear'] = df['date'].dt.dayofyear
-        # Targets - next day values (t+1)
         df['temp_min_tgt'] = df['temp_min'].shift(-1)
         df['temp_avg_tgt'] = df['temp_avg'].shift(-1)
         df['temp_max_tgt'] = df['temp_max'].shift(-1)
@@ -50,14 +52,10 @@ class ForecasterCatBoost:
         y = df[['temp_min_tgt', 'temp_avg_tgt', 'temp_max_tgt']]
         return X, y
 
-    async def fit(self, city, predict_date, silent=True):
-        # Max date for historic weather
+    async def fit(self, city, predict_date):
         today = datetime.utcnow().date()
-        max_history_date = today - timedelta(days=2)  # вчерашний день
-
-        # Prediction date
+        max_history_date = today - timedelta(days=2)
         dt_predict = pd.to_datetime(predict_date).date()
-        
         end_date = min(max_history_date, dt_predict - timedelta(days=1))
         start_date = end_date - timedelta(days=self.history_days - 1)
 
@@ -68,20 +66,12 @@ class ForecasterCatBoost:
             X, y = self.make_supervised(df)
             X_scaled = self.scaler_X.fit_transform(X)
             y_scaled = self.scaler_y.fit_transform(y)
-            self.model = CatBoostRegressor(
-                iterations=200,
-                depth=6,
-                learning_rate=0.1,
-                loss_function='MultiRMSE',
-                verbose=False if silent else 50,
-                allow_writing_files=False
-            )
+            self.model = MultiOutputRegressor(LinearRegression())
             self.model.fit(X_scaled, y_scaled)
 
     def predict(self, predict_date):
         if self.model is None or self.df_history is None:
             raise RuntimeError("Model is not trained. Call 'fit' first.")
-        dt = pd.to_datetime(predict_date)
         # Для прогноза берём последнюю доступную строку (вчера)
         last_row = self.df_history.iloc[[-1]]
         feats = last_row[self.feature_cols].values
@@ -96,15 +86,3 @@ class ForecasterCatBoost:
             'temp_max': float(tmax)
         }
         return forecast
-
-# Usage example:
-async def main():
-    city = "Moscow"
-    predict_date = "2025-06-01"
-    forecaster = ForecasterCatBoost()
-    await forecaster.fit(city, predict_date)
-    forecast = forecaster.predict(predict_date)
-    print(f"Погода в {city} на {forecast['date']}: min={forecast['temp_min']:.1f}, avg={forecast['temp_avg']:.1f}, max={forecast['temp_max']:.1f}")
-
-if __name__ == "__main__":
-    asyncio.run(main())

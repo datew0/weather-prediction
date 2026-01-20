@@ -1,8 +1,3 @@
-from datetime import datetime, date
-import json
-import math
-import aiohttp
-import logging
 import aio_pika
 
 from app.connections.redis import redis_client
@@ -32,12 +27,12 @@ class ForecastRepository:
         )
         
         channel = self.rabbitmq.channel
-        queue = await channel.declare_queue('forecast_requests', durable=True)
+        queue = await channel.declare_queue(settings.RABBITMQ_FC_REQ_QUEUE, durable=True)
 
         message_body = msg.model_dump_json().encode()
         message = aio_pika.Message(body=message_body)
         await channel.default_exchange.publish(
             message,
-            routing_key=queue.name  # или settings.RABBITMQ_FC_REQ_QUEUE
+            routing_key=queue.name
         )
         logger.info(f'Forecast request sent to task queue: {city} {date}')

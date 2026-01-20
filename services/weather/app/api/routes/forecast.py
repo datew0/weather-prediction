@@ -1,7 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from geopy.geocoders import Nominatim
-from geopy.adapters import AioHTTPAdapter
-from pydantic import ValidationError
 from typing import Annotated
 
 from app.schemas.forecast import *
@@ -36,7 +33,10 @@ async def request_forecast(req: ForecastPostRequest,
     if task_id is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Forecast already exists for specified parameters"
+            detail={
+                "message": "Запрашиваемый прогноз уже существует",
+                "forecast_id": str(service._generate_task_id(req.city, req.date_))
+            }
         )
 
     response = ForecastPostResponse(
@@ -46,4 +46,3 @@ async def request_forecast(req: ForecastPostRequest,
     )
 
     return response
-

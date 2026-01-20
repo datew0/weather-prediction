@@ -1,10 +1,8 @@
-from datetime import datetime, date
+from datetime import date
 import hashlib
 import asyncio
 import uuid
 
-from app.connections.redis import redis_client
-from app.core.config import settings
 from app.core.logger import logger
 from app.repositories.forecast import ForecastRepository
 from app.schemas.forecast import ForecastData

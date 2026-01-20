@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field, field_validator
 from datetime import date
 from typing import Optional, List
-from app.core.config import settings
+
+from app.utils.cities import ALLOWED_CITIES_COORDS
 
 class WeatherQuery(BaseModel):
     '''Параметры запроса погоды в конкретном городе на определенную дату'''
@@ -10,23 +11,23 @@ class WeatherQuery(BaseModel):
 
     @field_validator('city')
     def validate_city(cls, value):
-        allowed_cities = settings.ALLOWED_CITIES_COORDS.keys()
+        allowed_cities = ALLOWED_CITIES_COORDS.keys()
         if value not in allowed_cities:
             raise ValueError(f'City must be one of: {", ".join(allowed_cities)}')
         return value
-
+    
 
 class WeatherData(BaseModel):
     '''Данные о погоде за день'''
-    temp_min: float                     # Минимальная температура
-    temp_avg: float                     # Средняя температура
-    temp_max: float                     # Максимальная температура
+    temp_min: float         # Минимальная температура
+    temp_avg: float         # Средняя температура
+    temp_max: float         # Максимальная температура
     
-    humidity_min: float # Минимальная влажность (опционально)
-    humidity_avg: float                 # Средняя влажность
-    humidity_max: float # Максимальная влажность (опционально)
+    humidity_min: float     # Минимальная влажность (опционально)
+    humidity_avg: float     # Средняя влажность
+    humidity_max: float     # Максимальная влажность (опционально)
 
-    precipitation: float                # Осадки (мм)
+    precipitation: float    # Осадки (мм)
 
 
 class WeatherResponse(WeatherQuery):

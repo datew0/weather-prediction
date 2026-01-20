@@ -1,12 +1,11 @@
-from datetime import datetime, date
-import json
-import math
+from datetime import date
 import aiohttp
 
 from app.connections.redis import redis_client
 from app.schemas.weather import *
 from app.core.config import settings
 from app.core.logger import logger
+from app.utils.cities import ALLOWED_CITIES_COORDS
 
 class WeatherRepository:
     @staticmethod
@@ -46,8 +45,8 @@ class WeatherRepository:
 
     async def get_weather_from_api(self, city, date_: date) -> WeatherData | None:
         logger.info(f'Requesting weather in {city} on {date_.isoformat()} from API')
-        lat = settings.ALLOWED_CITIES_COORDS[city][0]
-        lon = settings.ALLOWED_CITIES_COORDS[city][1]
+        lat = ALLOWED_CITIES_COORDS[city][0]
+        lon = ALLOWED_CITIES_COORDS[city][1]
         async with aiohttp.ClientSession() as session:
             params = OpenMeteoReqParams(
                 latitude = lat,

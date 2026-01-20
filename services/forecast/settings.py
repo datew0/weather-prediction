@@ -2,16 +2,14 @@ from typing import Dict, Tuple, Literal
 from pydantic_settings import BaseSettings
 from pathlib import Path
 
-# Путь к .env файлу
-BASE_DIR = Path(__file__).resolve().parent.parent
-ENV_PATH = BASE_DIR.parent / ".env"
+# Путь к .env файлу на уровень выше app/
+BASE_DIR = Path(__file__).resolve()
+ENV_PATH = BASE_DIR / ".env"
+
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str
     WEATHER_HOST: str
-
-    # API
-    ARCHIVE_WEATHER_URL: str
+    WEATHER_PORT: int
 
     # Redis
     REDIS_HOST: str
@@ -26,11 +24,11 @@ class Settings(BaseSettings):
 
     @property
     def RABBIT_URL(self) -> str:
-        return f'amqp://{self.RABBITMQ_USER}:{self.RABBITMQ_PASS}@{self.RABBITMQ_HOST}:{self.RABBITMQ_PORT}/'
+        return f"amqp://{self.RABBITMQ_USER}:{self.RABBITMQ_PASS}@{self.RABBITMQ_HOST}:{self.RABBITMQ_PORT}/"
 
     class Config:
+        # Если .env существует — используем его, иначе читаем из окружения
         env_file = ENV_PATH if ENV_PATH.exists() else None
         env_file_encoding = "utf-8"
-        case_sensitive = True
 
 settings = Settings()

@@ -1,9 +1,9 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Literal, Optional
+from typing import Literal
 from datetime import date, datetime, timedelta
 import uuid
 
-from app.core.config import settings
+from app.utils.cities import ALLOWED_CITIES_COORDS
 
 class ForecastPostRequest(BaseModel):
     '''Параметры запроса прогноза по городу и дате'''
@@ -12,7 +12,7 @@ class ForecastPostRequest(BaseModel):
 
     @field_validator('city')
     def validate_city(cls, value: str) -> str:
-        allowed_cities = settings.ALLOWED_CITIES_COORDS.keys()
+        allowed_cities = ALLOWED_CITIES_COORDS.keys()
         if value not in allowed_cities:
             raise ValueError(f'Неподдерживаемый город: {", ".join(allowed_cities)}')
         return value
@@ -27,17 +27,13 @@ class ForecastPostRequest(BaseModel):
 class ForecastTaskQuery(BaseModel):
     task_id: uuid.UUID
 
-
 class ForecastPostResponse(BaseModel):
     status: Literal['accepted', 'rejected']
     task_id: uuid.UUID
     msg: str
 
-
-
-
 class ForecastMetadata(BaseModel):
-    model: Literal['catboost-1.0'] = Field(..., description="Использованная модель прогнозирования")
+    model: Literal['linear_regression'] = Field(..., description="Использованная модель прогнозирования")
     predicted_at: datetime = Field(..., description="Время создания прогноза")
     
 class Forecast(BaseModel):
